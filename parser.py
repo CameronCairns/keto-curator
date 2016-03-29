@@ -66,6 +66,20 @@ def parse_nutrition_list(nutrition_file='data/ABBREV.txt'):
                           for line
                           in file
                          ]
+    for food_item in nutrition_list:
+        variables = [attribute_weight
+                     for attribute_weight
+                     in [float(food_item[variable])
+                         for variable
+                         in [
+                             # Note to include alcohol once you have expanded
+                             # to using non abbreviated form
+                             'water', 'protein', 'total_lipid', 'ash', 'fiber'
+                             ]
+                         if food_item[variable] != ''
+                        ]
+                    ]
+        food_item['available_carbohydrate'] = str(100 - sum(variables))
     return nutrition_list
 
 if __name__ == '__main__':
