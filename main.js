@@ -1,28 +1,23 @@
 $(document).ready(function () {
     $.getJSON('resources/nutrition-data.json', function(data) {
         var tableHeader = '';
-        Object.keys(data[0]).forEach(function(key, keyIndex, array) {
-            //Populate table header using the keys from the JSON file created
-            //earlier for convenience. Will clean this up later with custom
-            //headers with more information
-            tableHeader += '<th>' + key + '</th>';
-        });
-        var tableData = ''
+        var tableData = '';
+        var dataTable = document.getElementById("data-table");
+        tableHeader = '<tr>' +
+            '<th>Food</th>' +
+            '<th>Carbohydrates</th>' +
+            '<th>Fiber</th>' +
+            '<th>Available Carbohydrates</th>' +
+            '</tr>';
         data.forEach( function(itemEntry, itemIndex, itemArray) {
             //Loop over every fooditem in the nutrition-data file
-            tableHeader += '<tr>';
-            for (var attribute in itemEntry) {
-                        //Populate table data using the value from each of the
-                        //data points in the json file
-                        if( itemEntry.hasOwnProperty( attribute ) ) {
-                            tableHeader += '<td>' +
-                                            itemEntry[attribute] +
-                                            '</td>';
-                        }
-                    }
-            tableHeader += '</tr>';
+            tableData += '<tr>' +
+                '<td>' + itemEntry['description'] + '</td>' +
+                '<td>' + itemEntry['carbohydrate'] + '</td>' +
+                '<td>' + itemEntry['fiber'] + '</td>' +
+                '<td>' + itemEntry['available_carbohydrate'] + '</td>' +
+                '</tr>';
         });
-        var dataTable = document.getElementById("data-table");
         dataTable.innerHTML = tableHeader + tableData;
     });
 });
