@@ -84,5 +84,5 @@ def parse_nutrition_list(nutrition_file='data/ABBREV.txt'):
 
 if __name__ == '__main__':
    nutrition_list = parse_nutrition_list() 
-   with open('resources/nutrition_dump.json', 'w') as file:
+   with open('resources/nutrition-list.json', 'w') as file:
        json.dump(nutrition_list, file)
