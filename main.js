@@ -3,6 +3,15 @@ $(document).ready(function () {
         var tableHeader = '';
         var tableData = '';
         var dataTable = document.getElementById("data-table");
+        var sort_key = 'carbohydrate' 
+           /* (
+                document.getElementById("sort-key").getAttribute('value') ||
+                'carbohydrate'
+                )
+                */
+        data.sort( function(a, b) {
+            return a[sort_key] - b[sort_key]
+        });
         tableHeader = '<tr>' +
             '<th>Food</th>' +
             '<th>Carbohydrates</th>' +
