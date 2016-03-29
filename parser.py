@@ -85,7 +85,8 @@ def parse_nutrition_list(nutrition_file='data/ABBREV.txt'):
         food_item['available_carbohydrate'] = (
                 '0'
                 if(remainder < 0 or
-                   food_item['carbohydrate'] == '0')
+                   food_item['carbohydrate'] == '0' or
+                   food_item['energy'] == '0')
                 else '{:.2f}'.format(remainder)
                 )
     return nutrition_list
