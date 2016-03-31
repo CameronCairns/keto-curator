@@ -7,18 +7,66 @@ def format_nutrition_data(parsers, files):
     items nutritional data
     """
     # Populate food_group code values for use in constructing nutrition data
-    food_groups = {}
+    food_groups = {food_group['food_group_code']: food_group['description']
+                   for food_group
+                   in parsers['food_group']}
+    # Populate nutrition code values for use in constructing nutrition data
+    nutrient_descriptions = {description['nutrient_number']: {
+                              key: value
+                              for key, value
+                              in description.items()
+                              if key in ['units', 'description', 'precision']}
+                             for description
+                             in parsers['nutrient_description']}
     # Get basic food_item information from food description file
     nutrition_data = {data['NDB_number']: dict(
                             description=data['long_description'],
                             food_group=food_groups[data['food_group_code']],
                             manufacturer=data['manufacturer'],
-                            alternate_names=data['common_name'])
+                            alternate_names=data['common_name'],
+                            **{value['description']: '0' 
+                               for value
+                               in nutrient_descriptions.values()},
+                            alternate_measurements={})
                       for data
                       in parsers['description']}
+    # Complete nutrient data for each food's nutrient dictionary 
+    for nutrient in parsers['nutrient']:
+        # translate the nutrient number into its corresponding description to
+        # modify the appropriate key in each nutrition data dict
+        nutrient_description = nutrient_descriptions[nutrient[
+            'nutrient_number']]['description']
+        nutrition_data[nutrient['NDB_number']][nutrient_description] = (
+            nutrient['nutrient_value'])
+    # Associate common household measurements with each food item
+    for weight in parsers['weight']:
+        nutrition_data[weight['NDB_number']]['alternate_measurements'][
+            weight['unit']] = dict(amount=weight['amount'],
+                                   gram_weight=weight['gram_weight'])
+    # Now that the nutrition data has been formed, remove the NDB_number
+    # from the data set as it is no longer necessary
+    nutrition_data = list(nutrition_data.values())
+    # Calculate the available_carbohydrates for each food item
+    for food_item in nutrition_data:
+        # calculate available carbohydrate by finding the remainder after
+        # subtracting water, protein, fat, ash, fiber and alcohol from item
+        # weight (100g) per instructions from sr28
+        remainder = 100 - sum(attribute_weight
+                              for attribute_weight
+                              in [float(food_item[variable])
+                                  for variable
+                                  in ['Water', 'Protein', 'Total lipid (fat)',
+                                      'Ash', 'Fiber, total dietary', 'Alcohol, ethyl']])
+        food_item['available_carbohydrate'] = (
+                '0'
+                if(remainder < 0 or
+                   food_item['Carbohydrate, by difference'] == '0' or
+                   food_item['Energy'] == '0')
+                else '{:.2f}'.format(remainder)
+                )
     # Close the files as we are done using them now
     map(lambda x: x.close(), files)
-    return nutrition_data
+    return nutrition_data, nutrient_descriptions
 
 def generate_database_parsers(**kwargs):
     """
@@ -87,18 +135,16 @@ def generate_database_parsers(**kwargs):
     for dataset, data_file in files.items():
         # Store each dataset as a list of dictionaries with keys that
         # correspond to the attributes of that dataset 
-        parsers[dataset] = ({attributes[dataset][i]: value.strip('~') 
+        parsers[dataset] = [{attributes[dataset][i]: value.strip('~') 
                              for i, value in enumerate(line.strip().split('^'))}
                              for line
-                             in data_file)
-        # parsers[dataset] = [dict(
-        #                      zip(attributes[dataset], line.strip().split('^')))
-        #                      for line
-        #                      in data_file]
+                             in data_file]
     return parsers, files
 
 if __name__ == '__main__':
     parsers, files = generate_database_parsers()
-    # nutrition_data = format_nutrition_data(parsers, files)
-    # with open('resources/nutrition-data.json', 'w') as file:
-    #     json.dump(nutrition_data, file)
+    nutrition_data, nutrient_descriptions = format_nutrition_data(parsers, files)
+    with open('resources/nutrition-data.json', 'w') as file:
+        json.dump(nutrition_data, file)
+    with open('resources/nutrient-descriptions.json', 'w') as file:
+        json.dump(nutrient_descriptions, file)
