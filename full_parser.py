@@ -56,17 +56,20 @@ def format_nutrition_data(parsers, files):
                               in [float(food_item[variable])
                                   for variable
                                   in ['Water', 'Protein', 'Total lipid (fat)',
-                                      'Ash', 'Fiber, total dietary', 'Alcohol, ethyl']])
+                                      'Ash', 'Fiber, total dietary',
+                                      'Alcohol, ethyl']])
         food_item['available_carbohydrate'] = (
                 '0'
-                if(remainder < 0 or
+                if(remainder <= 0 or
                    food_item['Carbohydrate, by difference'] == '0' or
                    food_item['Energy'] == '0')
                 else '{:.2f}'.format(remainder)
                 )
+    # Transform food groups into a list for usability
+    food_groups = list(food_groups.values())
     # Close the files as we are done using them now
     map(lambda x: x.close(), files)
-    return nutrition_data, nutrient_descriptions
+    return nutrition_data, nutrient_descriptions, food_groups
 
 def generate_database_parsers(**kwargs):
     """
@@ -143,8 +146,11 @@ def generate_database_parsers(**kwargs):
 
 if __name__ == '__main__':
     parsers, files = generate_database_parsers()
-    nutrition_data, nutrient_descriptions = format_nutrition_data(parsers, files)
+    nutrition_data, nutrient_descriptions, food_groups = (
+            format_nutrition_data(parsers, files))
     with open('resources/nutrition-data.json', 'w') as file:
         json.dump(nutrition_data, file)
     with open('resources/nutrient-descriptions.json', 'w') as file:
         json.dump(nutrient_descriptions, file)
+    with open('resources/food-groups.json', 'w') as file:
+        json.dump(food_groups, file)
