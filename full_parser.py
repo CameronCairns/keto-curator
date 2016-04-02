@@ -19,15 +19,15 @@ def format_nutrition_data(parsers, files):
                              for description
                              in parsers['nutrient_description']}
     # Get basic food_item information from food description file
-    nutrition_data = {data['NDB_number']: dict(
-                            description=data['long_description'],
-                            food_group=food_groups[data['food_group_code']],
-                            manufacturer=data['manufacturer'],
-                            alternate_names=data['common_name'],
-                            **{value['description']: '0' 
-                               for value
-                               in nutrient_descriptions.values()},
-                            alternate_measurements={})
+    nutrition_data = {data['NDB_number']:
+                      dict(description=data['long_description'],
+                           food_group=food_groups[data['food_group_code']],
+                           manufacturer=data['manufacturer'],
+                           alternate_names=data['common_name'],
+                           nutrients={'100 gram':
+                                      {value['description']: '0' 
+                                       for value
+                                       in nutrient_descriptions.values()}})
                       for data
                       in parsers['description']}
     # Complete nutrient data for each food's nutrient dictionary 
@@ -36,35 +36,42 @@ def format_nutrition_data(parsers, files):
         # modify the appropriate key in each nutrition data dict
         nutrient_description = nutrient_descriptions[nutrient[
             'nutrient_number']]['description']
-        nutrition_data[nutrient['NDB_number']][nutrient_description] = (
-            nutrient['nutrient_value'])
-    # Associate common household measurements with each food item
-    for weight in parsers['weight']:
-        nutrition_data[weight['NDB_number']]['alternate_measurements'][
-            weight['unit']] = dict(amount=weight['amount'],
-                                   gram_weight=weight['gram_weight'])
-    # Now that the nutrition data has been formed, remove the NDB_number
-    # from the data set as it is no longer necessary
-    nutrition_data = list(nutrition_data.values())
+        nutrition_data[nutrient['NDB_number']]['nutrients']['100 gram'][
+                nutrient_description] =  '{:.2f}'.format(
+                        float(nutrient['nutrient_value']))
     # Calculate the available_carbohydrates for each food item
-    for food_item in nutrition_data:
+    for food_item in nutrition_data.values():
         # calculate available carbohydrate by finding the remainder after
         # subtracting water, protein, fat, ash, fiber and alcohol from item
         # weight (100g) per instructions from sr28
         remainder = 100 - sum(attribute_weight
                               for attribute_weight
-                              in [float(food_item[variable])
+                              in [float(
+                                  food_item['nutrients']['100 gram'][variable])
                                   for variable
                                   in ['Water', 'Protein', 'Total lipid (fat)',
                                       'Ash', 'Fiber, total dietary',
                                       'Alcohol, ethyl']])
-        food_item['available_carbohydrate'] = (
-                '0'
+        food_item['nutrients']['100 gram']['available_carbohydrate'] = (
+                '0.00'
                 if(remainder <= 0 or
-                   food_item['Carbohydrate, by difference'] == '0' or
-                   food_item['Energy'] == '0')
+                   food_item['nutrients']['100 gram'][
+                       'Carbohydrate, by difference'] == '0.00' or
+                   food_item['nutrients']['100 gram']['Energy'] == '0.00')
                 else '{:.2f}'.format(remainder)
                 )
+    # Generate nutritional data for each measurement weight
+    for weight in parsers['weight']:
+        key = weight['NDB_number']
+        weight_ratio = float(weight['gram_weight']) / 100
+        measurement = '{0} {1}'.format(weight['amount'], weight['unit'])
+        nutrition_data[key]['nutrients'][measurement] = {
+            nutrient:  '{:.2f}'.format(float(value)*weight_ratio)
+            for nutrient, value
+            in nutrition_data[key]['nutrients']['100 gram'].items()}
+    # Now that the nutrition data has been formed, remove the NDB_number
+    # from the data set as it is no longer necessary
+    nutrition_data = list(nutrition_data.values())
     # Transform food groups into a list for usability
     food_groups = list(food_groups.values())
     # Close the files as we are done using them now
