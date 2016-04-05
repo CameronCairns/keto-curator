@@ -24,10 +24,11 @@ def format_nutrition_data(parsers, files):
                            food_group=food_groups[data['food_group_code']],
                            manufacturer=data['manufacturer'],
                            alternate_names=data['common_name'],
-                           measurements={'100 gram':
-                                      {key: '0' 
-                                       for key
-                                       in nutrient_descriptions.keys()}})
+                           measurements=[{**{key: '0'
+                                          for key
+                                          in nutrient_descriptions.keys()},
+                                          **{'description': '100 gram',
+                                             'gram_weight': 100.00}}])
                       for data
                       in parsers['description']}
     # Complete nutrient data for each food's nutrient dictionary 
@@ -36,7 +37,7 @@ def format_nutrition_data(parsers, files):
         value =  '{0:.{1}f}'.format(float(nutrient['nutrient_value']),
                                     nutrient_descriptions[key]['precision'])
         NDB_number = nutrient['NDB_number']
-        nutrition_data[NDB_number]['measurements']['100 gram'][key] = value
+        nutrition_data[NDB_number]['measurements'][0][key] = value
     # Calculate the available_carbohydrates for each food item
     # Since nutrients use nutrient description numbers as their keys need to
     # make what nutrients are being summed a little more clear using a
@@ -59,18 +60,17 @@ def format_nutrition_data(parsers, files):
         # weight (100g) per instructions from sr28
         remainder = 100 - sum(attribute_weight
                               for attribute_weight
-                              in [float(food_item['measurements']['100 gram'][
+                              in [float(food_item['measurements'][0][
                                             key])
                                   for key
                                   in nutrients])
-        food_item['measurements']['100 gram']['available_carbohydrate'] = (
+        food_item['measurements'][0]['available_carbohydrate'] = (
                 '{0:.{1}f}'.format(zero, precision)
                 if(remainder <= 0 or
                    # Carbohydrates == 0
-                   float(food_item['measurements']['100 gram'][
-                            '205']) <= zero or
+                   float(food_item['measurements'][0]['205']) <= zero or
                    # Energy == 0
-                   float(food_item['measurements']['100 gram']['208']) <= zero)
+                   float(food_item['measurements'][0]['208']) <= zero)
                 else '{0:.{1}f}'.format(remainder, precision)
                 )
     # Generate nutritional data for each measurement weight
@@ -78,12 +78,19 @@ def format_nutrition_data(parsers, files):
         key = weight['NDB_number']
         weight_ratio = float(weight['gram_weight']) / 100
         measurement = '{0} {1}'.format(weight['amount'], weight['unit'])
-        nutrition_data[key]['measurements'][measurement] = {
-            nutrient:  '{:.2f}'.format(float(value)*weight_ratio)
-            for nutrient, value
-            in nutrition_data[key]['measurements']['100 gram'].items()}
-        nutrition_data[key]['measurements'][measurement][
-                'gram_weight'] = float(weight['gram_weight'])
+        nutrition_data[key]['measurements'].append({
+            **{nutrient:  '{:.2f}'.format(float(value)*weight_ratio)
+               for nutrient, value
+               in nutrition_data[key]['measurements'][0].items()
+               if nutrient not in ['description', 'gram_weight']},
+            **{'description': measurement,
+               'gram_weight': float(weight['gram_weight'])}})
+    # Sort the measurement list associated with each food item by gram_weight
+    # in ascending order so the web app can identify the smallest measurement
+    # for listing a table of values
+    for food_item in nutrition_data.values():
+        food_item['measurements'].sort(
+                key=lambda measurement: measurement['gram_weight'])
     # Transform food groups into a list for usability
     food_groups = list(food_groups.values())
     # Close the files as we are done using them now
