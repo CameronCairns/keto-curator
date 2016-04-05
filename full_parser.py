@@ -33,16 +33,26 @@ def format_nutrition_data(parsers, files):
     # Complete nutrient data for each food's nutrient dictionary 
     for nutrient in parsers['nutrient']:
         key = nutrient['nutrient_number']
-        value =  '{:.2f}'.format(float(nutrient['nutrient_value']))
+        value =  '{0:.{1}f}'.format(float(nutrient['nutrient_value']),
+                                    nutrient_descriptions[key]['precision'])
         NDB_number = nutrient['NDB_number']
         nutrition_data[NDB_number]['measurements']['100 gram'][key] = value
     # Calculate the available_carbohydrates for each food item
+    # Since nutrients use nutrient description numbers as their keys need to
+    # make what nutrients are being summed a little more clear using a
+    # comprehension
     nutrients = [key
                  for key
                  in nutrient_descriptions.keys()
                  if nutrient_descriptions[key]['description'] in [
                      'Water', 'Protein', 'Total lipid (fat)', 'Ash',
                      'Fiber, total dietary', 'Alcohol, ethyl']]
+    # Need precision to ensure that the format of the actual carbohydrates
+    # matches with the precision of its calculation
+    precision = min(nutrient_descriptions[key]['precision']
+                    for key
+                    in nutrients)
+    zero = float(0)
     for food_item in nutrition_data.values():
         # calculate available carbohydrate by finding the remainder after
         # subtracting water, protein, fat, ash, fiber and alcohol from item
@@ -54,13 +64,14 @@ def format_nutrition_data(parsers, files):
                                   for key
                                   in nutrients])
         food_item['measurements']['100 gram']['available_carbohydrate'] = (
-                '0.00'
+                '{0:.{1}f}'.format(zero, precision)
                 if(remainder <= 0 or
                    # Carbohydrates == 0
-                   food_item['measurements']['100 gram']['205'] == '0.00' or
+                   float(food_item['measurements']['100 gram'][
+                            '205']) <= zero or
                    # Energy == 0
-                   food_item['measurements']['100 gram']['208'] == '0.00')
-                else '{:.2f}'.format(remainder)
+                   float(food_item['measurements']['100 gram']['208']) <= zero)
+                else '{0:.{1}f}'.format(remainder, precision)
                 )
     # Generate nutritional data for each measurement weight
     for weight in parsers['weight']:
@@ -71,6 +82,8 @@ def format_nutrition_data(parsers, files):
             nutrient:  '{:.2f}'.format(float(value)*weight_ratio)
             for nutrient, value
             in nutrition_data[key]['measurements']['100 gram'].items()}
+        nutrition_data[key]['measurements'][measurement][
+                'gram_weight'] = float(weight['gram_weight'])
     # Transform food groups into a list for usability
     food_groups = list(food_groups.values())
     # Close the files as we are done using them now
