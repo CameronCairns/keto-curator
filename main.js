@@ -1,5 +1,7 @@
 //Global variables to be reused
-var data, extraAttributes, foodGroups, nutrientData, sections, sortKey
+var ascending, data, fats, foodGroups, foodList, minerals, nutrientData,
+    sections, vitamins;
+    
 
 function fetchJSON(url, dataStore) {
     //return $.getJSON(url, function(json_data) {dataStore = json_data});
@@ -10,19 +12,12 @@ function fetchJSON(url, dataStore) {
                 return json_data}});
 }
 
-function formatData() {
-    //Gather all extra attributes to display in the food data
-    extraAttributes = []
-    for(var key in data[0]) {
-        if(!(key in ['description', 'food_group', 'available_carbohydrate'])) {
-            extraAttributes.push(key)
-        }
-    }
-    extraAttributes.sort()
+function setDefaultSettings() {
     //Sort foodGroups into alphabetical order
     foodGroups.sort();
     // Initialize sortKey as 'available_carbohydrate' as a default
-    sortKey = 'available_carbohydrate';
+    ordering = 'available_carbohydrate';
+    ascending = 1
     // Foods are separated into diferent groups, so create an object to
     // associate the group name of each section with its corresponding HTML
     sections = {}
@@ -35,31 +30,56 @@ function formatData() {
     }
 }
 
-function initializePage() {
-    var element = document.getElementById("initializer-parameters");
-    var attributes = ['description', 'available_carbohydrate',
-                      'alternate_measurements'];
-    var HTML = '';
-    //Gather all extra attributes to display in the food data
-    //Give user an interface to select which attributes they would like to see
-    attributeChoices = '<select multiple>'
-    for(var i = 0; i < extraAttributes.length; i++) {
-        attributeChoices += '<option value="' + extraAttributes[i] + '">' +
-                                 extraAttributes[i] +
-                            '</option>'
-    }
-    attributeChoices += '</select multiple>'
-    HTML += attributeChoices
-    foodGroupsChoices = '<select multiple>'
-    for(var i = 0; i < foodGroups.length; i++) {
-        foodGroupsChoices += '<option value="' + foodGroups[i] + '">' +
-                                  foodGroups[i] +
-                             '</option>'
-    }
-    foodGroupsChoices += '</select multiple>'
-    HTML += foodGroupsChoices
-    element.innerHTML = HTML
-    displayData()
+function initializeGlobals() {
+    // Indices of vitamin, minerals and fats based upon nutrient definition
+    // numbers for the USDA nutrition database
+    // Selected nutrients are from FDA minimum nutrient guidelines
+    // http://www.fda.gov
+    // /Food/GuidanceRegulation/GuidanceDocumentsRegulatoryInformation
+    // /LabelingNutrition/ucm064928.htm
+    vitamins = ['318', //Vitamin A
+                '401', //Vitamin C
+                '324', //Vitamin D
+                '323', //Vitamin E
+                '573', //Vitamin E, added
+                '430', //Vitamin K
+                '415', //Vitamin B6
+                '418', //Vitamin B12
+                '578', //Vitamin B12, added
+                '404', //Thiamin
+                '405', //Riboflavin
+                '406', //Niacin
+                '410', //Pantothenic Acid
+                '417', //Folate
+                '401', //Vitamin C
+                //Note that biotin is not included
+    ];
+    minerals = ['301', //Calcium
+                '307', //Sodium
+                '305', //Phosphorus
+                '304', //Magnesium
+                '306', //Potassium
+                '303', //Iron
+                '315', //Manganese
+                '312', //Copper
+                '309', //Zinc
+                '317', //Selenium
+                // Note that Chromium, Molbydenum, and Iodine are not listed
+    ];
+    fats = ['204', //Total Fat
+            '605', //Total trans
+            '606', //Total saturated
+            '645', //Total monounsaturated
+            '646', //Total polyunsaturated
+    ];
+    carbohydrates = ['available_carbohydrate',
+                     '205', //Total Carbohydrate
+                     '291', //Fiber
+                     '269', //total sugar
+                     '221', //Alcohol, ethyl
+    ];
+    foodList = Object.keys(data)
+    
 }
 
 function displayData() {
@@ -72,9 +92,10 @@ function displayData() {
     var attributes =  selectedAttributes.concat(['available_carbohydrate'])
     // Sort the data according to the defined sortKey
     // use separate comparison logic for numerical and string attributes
-    if( sortKey in ['description', 'food_group', 'manufacturer']) {
-        data.sort( function(a, b) {
-            return a[sortKey] >= b[sortKey] ? 1 : -1;
+    if( ordering in ['description', 'measurement']) {
+        list.sort( function(a, b) {
+            // Order based upon alphanumeric value
+            return data[a][ordering] >= data[b][ordering] ? ascending : -ascending;
         });
     } else {
         data.sort( function(a, b) {
@@ -113,10 +134,14 @@ function displayData() {
                                                             '</td>';
         // Fill in measurements available for the food item
         sections[data[i]['food_group']]['tableData'] += '<td><ul>';
+        // 100 gram is displayed for every food group, and displayed first
+        sections[data[i]['food_group']]['tableData'] += '<li>100 gram</li>'
         for(measurement in data[i]['nutrients']) {
-            sections[data[i]['food_group']]['tableData'] += '<li>' +
-                                                                measurement +
-                                                            '</li>';
+            if(measurement != '100 gram') {
+                sections[data[i]['food_group']]['tableData'] += '<li>' +
+                                                                    measurement +
+                                                                '</li>';
+            }
         }
         sections[data[i]['food_group']]['tableData'] += '</ul></td>';
         // Now iterate over each nutrient specified
@@ -167,7 +192,8 @@ $(document).ready(function () {
             async: false,
             success: function (json_data){foodGroups=json_data;}});
     //format data to assist in displaying it 
-    formatData();
+    setDefaultSettings();
+    initializeGlobals();
     //initialize page for user control
-    initializePage();
+    displayData();
 });
