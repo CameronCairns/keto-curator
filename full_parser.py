@@ -18,6 +18,27 @@ def format_nutrition_data(parsers, files):
                               if key in ['units', 'description', 'precision']}
                              for description
                              in parsers['nutrient_description']}
+    # Add available carbohydrate as a datapoint for nutrient descriptions
+    # Need some meta data here that will be used elsewhere regarding what
+    # nutrients are needed for the calculation of Available Carbs
+    # Since nutrients use nutrient description numbers as their keys need to
+    # make what nutrients are being summed a little more clear using a
+    # comprehension
+    nutrients = [key
+                 for key
+                 in nutrient_descriptions.keys()
+                 if nutrient_descriptions[key]['description'] in [
+                     'Water', 'Protein', 'Total lipid (fat)', 'Ash',
+                     'Fiber, total dietary', 'Alcohol, ethyl']]
+    # Need precision to ensure that the format of the actual carbohydrates
+    # matches with the precision of its calculation
+    precision = min(nutrient_descriptions[key]['precision']
+                    for key
+                    in nutrients)
+    nutrient_descriptions['available_carbohydrate'] = dict(
+            units='g',
+            description='Available Carbohydrate',
+            precision=precision)
     # Get basic food_item information from food description file
     nutrition_data = {data['NDB_number']:
                       dict(description=data['long_description'],
@@ -39,20 +60,7 @@ def format_nutrition_data(parsers, files):
         NDB_number = nutrient['NDB_number']
         nutrition_data[NDB_number]['measurements'][0][key] = value
     # Calculate the available_carbohydrates for each food item
-    # Since nutrients use nutrient description numbers as their keys need to
-    # make what nutrients are being summed a little more clear using a
-    # comprehension
-    nutrients = [key
-                 for key
-                 in nutrient_descriptions.keys()
-                 if nutrient_descriptions[key]['description'] in [
-                     'Water', 'Protein', 'Total lipid (fat)', 'Ash',
-                     'Fiber, total dietary', 'Alcohol, ethyl']]
-    # Need precision to ensure that the format of the actual carbohydrates
-    # matches with the precision of its calculation
-    precision = min(nutrient_descriptions[key]['precision']
-                    for key
-                    in nutrients)
+    # zero used to compare floats
     zero = float(0)
     for food_item in nutrition_data.values():
         # calculate available carbohydrate by finding the remainder after
