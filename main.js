@@ -1,17 +1,15 @@
 //Global variables to be reused
-var ascending, data, fats, foodGroups, foodList, minerals, nutrientData,
-    sections, vitamins;
+var ascending, carbohydrate, data, fat, foodGroups, foodList, minerals,
+    nutrientData, sections, vitamins;
     
 
 function fetchJSON(url, dataStore) {
     //return $.getJSON(url, function(json_data) {dataStore = json_data});
     $.ajax({url:url,
-            dataType:'json',
-            async: false,
+            dataType:'json', async: false,
             success:function(json_data) {
                 return json_data}});
 }
-
 function setDefaultSettings() {
     //Sort foodGroups into alphabetical order
     foodGroups.sort();
@@ -37,70 +35,92 @@ function initializeGlobals() {
     // http://www.fda.gov
     // /Food/GuidanceRegulation/GuidanceDocumentsRegulatoryInformation
     // /LabelingNutrition/ucm064928.htm
-    vitamins = ['318', //Vitamin A
-                '401', //Vitamin C
-                '324', //Vitamin D
-                '323', //Vitamin E
-                '573', //Vitamin E, added
-                '430', //Vitamin K
-                '415', //Vitamin B6
-                '418', //Vitamin B12
-                '578', //Vitamin B12, added
-                '404', //Thiamin
-                '405', //Riboflavin
-                '406', //Niacin
-                '410', //Pantothenic Acid
-                '417', //Folate
-                '401', //Vitamin C
+    vitamins = [['318', 'A'],
+                ['401', 'C'],
+                ['324', 'D'],
+                ['323', 'E'],
+                ['430', 'K'],
+                ['415', 'B6'],
+                ['418', 'B12'],
+                ['404', 'Thiamin'],
+                ['405', 'Riboflavin'],
+                ['406', 'Niacin'],
+                ['410', 'Pantothenic Acid'],
+                ['417', 'Folate'],
                 //Note that biotin is not included
     ];
-    minerals = ['301', //Calcium
-                '307', //Sodium
-                '305', //Phosphorus
-                '304', //Magnesium
-                '306', //Potassium
-                '303', //Iron
-                '315', //Manganese
-                '312', //Copper
-                '309', //Zinc
-                '317', //Selenium
+    minerals = [['301', 'Calcium'],
+                ['307', 'Sodium'],
+                ['305', 'Phosphorus'],
+                ['304', 'Magnesium'],
+                ['306', 'Potassium'],
+                ['303', 'Iron'],
+                ['315', 'Manganese'],
+                ['312', 'Copper'],
+                ['309', 'Zinc'],
+                ['317', 'Selenium'],
                 // Note that Chromium, Molbydenum, and Iodine are not listed
     ];
-    fats = ['204', //Total Fat
-            '605', //Total trans
-            '606', //Total saturated
-            '645', //Total monounsaturated
-            '646', //Total polyunsaturated
+    fat = [['204', 'Total'],
+           ['605', 'Trans'],
+           ['606', 'Saturated'],
+           ['645', 'Monounsaturated'],
+           ['646', 'Polyunsaturated'],
     ];
-    carbohydrates = ['available_carbohydrate',
-                     '205', //Total Carbohydrate
-                     '291', //Fiber
-                     '269', //total sugar
-                     '221', //Alcohol, ethyl
+    carbohydrate = [['available_carbohydrate', 'Available'],
+                    ['205', 'Total'],
+                    ['291', 'Fiber'],
+                    ['269', 'Sugar'],
+                    ['221', 'Alcohol'],
     ];
-    foodList = Object.keys(data)
-    
+    foodList = Object.keys(data);
 }
 
-function displayData() {
+function generateList() {
     var element = document.getElementById("javascript-fill-in");
     var extraHeader = '';
     var HTML = '';
     var tableData = '';
     var tableHeader;
-    var selectedAttributes = []
-    var attributes =  selectedAttributes.concat(['available_carbohydrate'])
-    // Sort the data according to the defined sortKey
+    var iterableAttributes = [carbohydrate, fat, vitamins, minerals]
+    // Sort the data according to the defined ordering
     // use separate comparison logic for numerical and string attributes
-    if( ordering in ['description', 'measurement']) {
-        list.sort( function(a, b) {
+    if( ordering in ['description']) {
+        foodList.sort( function(a, b) {
             // Order based upon alphanumeric value
             return data[a][ordering] >= data[b][ordering] ? ascending : -ascending;
         });
+    }
+    if( ordering in ['measurements']) {
+        foodList.sort( function(a, b) {
+            // Order based upon alphanumeric value
+            result = 0;
+            result = data[a][ordering][0] > data[b][ordering][0] ?
+                ascending : -ascending;
+            if(result === 0) {
+                // Measurement was found to be the same, so sort by
+                // description
+                return data[a]['description'] >= data[b][ordering] ?
+                    ascending : -ascending;
+            }
+            else {
+                return result;
+            }
+        });
     } else {
-        data.sort( function(a, b) {
-            return a['nutrients']['100 gram'][sortKey] - b[
-                'nutrients']['100 gram'][sortKey];
+        foodList.sort( function(a, b) {
+            result = 0;
+            result = data[a]['measurements'][0][ordering] - data[b][
+                'measurements'][0][ordering];
+            if(result === 0) {
+                // Measurement was found to be the same, so sort by
+                // description
+                return data[a]['description'] >= data[b]['description'] ?
+                    ascending : -ascending;
+            }
+            else {
+                return result;
+            }
         });
     }
     // Construct the table header that will be shared amongst each food group
@@ -111,63 +131,60 @@ function displayData() {
                               'Food Description' +
                           '</th>' +
                           '<th>' +
-                              'Measurements' +
+                              'Measurement' +
                           '</th>' +
                           '<th>' +
-                              'Available Carbohydrate' +
-                          '</th>';
-    // Construct the headers for any extra attributes the user chose to see
-    for (var i = 0; i < selectedAttributes.length; i++) {
-        // Display every attribute specified in the attributes list
-        tableHeader +=  '<th>' + selectedAttributes[i] + '</th>';
-    }
-    //Header construction is completed so close the header row
-    tableHeader += '</tr>'
-    // Construct the data for any extra attributes the user chose to see
-    for (var i = 0; i < data.length; i++) {
-        // Loop over every food item in the nutrition-data file and add selected
-        // data
-        // First add the description for the food item its respective food group
-        sections[data[i]['food_group']]['tableData'] += '<tr>' +
-                                                            '<td>' +
-                                                                data[i]['description'] +
-                                                            '</td>';
-        // Fill in measurements available for the food item
-        sections[data[i]['food_group']]['tableData'] += '<td><ul>';
-        // 100 gram is displayed for every food group, and displayed first
-        sections[data[i]['food_group']]['tableData'] += '<li>100 gram</li>'
-        for(measurement in data[i]['nutrients']) {
-            if(measurement != '100 gram') {
-                sections[data[i]['food_group']]['tableData'] += '<li>' +
-                                                                    measurement +
-                                                                '</li>';
+                              'Protein' +
+                          '</th>' +
+                          '<th>' +
+                              'Carbohydrate' +
+                          '</th>' +
+                          '<th>' +
+                              'Fat' +
+                          '</th>' +
+                          '<th>' +
+                              'Vitamins' +
+                          '</th>' +
+                          '<th>' +
+                              'Minerals' +
+                          '</th>' +
+                      '</tr>';
+    for (var i = 0; i < foodList.length; i++) {
+        // Construct a row for each data key in the foodList
+        key = foodList[i]
+        measurement = data[key]['measurements'][0]
+        // First display data that contains only one data point
+        sections[data[key]['food_group']]['tableData'] +=
+            '<tr>' +
+                '<td>' +
+                    data[key]['description'] +
+                '</td>' +
+                '<td>' +
+                    measurement['description'] +
+                '</td>' +
+                '<td>' +
+                    measurement['203'] + //Protein
+                '</td>';
+        // Now iterate over the attributes that have many data points to
+        // display
+        for(var j = 0; j < iterableAttributes.length; j++) {
+            sections[data[key]['food_group']]['tableData'] += 
+                '<td><ul class="list-group">';
+            for(var k = 0; k < iterableAttributes[j].length; k++) {
+                sections[data[key]['food_group']]['tableData'] +=
+                    '<li class="list-group-item">' +
+                        iterableAttributes[j][k][1] + //Nutrient Description 
+                        ': ' +
+                        //Nutrient value
+                        measurement[iterableAttributes[j][k][0]] + ' ' + 
+                        //Nutrient units
+                        nutrientData[iterableAttributes[j][k][
+                            0]]['units'] + 
+                    '</li>';
             }
+            sections[data[key]['food_group']]['tableData'] += '</ul></td>';
         }
-        sections[data[i]['food_group']]['tableData'] += '</ul></td>';
-        // Now iterate over each nutrient specified
-        for (var j = 0; j < attributes.length; j++) {
-            // Display every attribute specified in the attributes list
-            // and show the values for 100 grams first
-            sections[data[i]['food_group']]['tableData'] +=
-                    '<td>' +
-                        '<ul>' +
-                            '<li>' +
-                                data[i]['nutrients']['100 gram'][
-                                    attributes[j]] +
-                            '</li>';
-            for(measurement in data[i]['nutrients']) {
-                // Iterate over attribute values for each measurement
-                // that is not 100 gram
-                if(measurement != '100 gram') {
-                    sections[data[i]['food_group']]['tableData'] +=
-                        '<li>' +
-                            data[i]['nutrients'][measurement][attributes[j]] +
-                        '</li>';
-                }
-            }
-            sections[data[i]['food_group']]['tableData'] += '</ul></td>'
-        }
-        sections[data[i]['food_group']]['tableData'] += '</tr>';
+        sections[data[key]['food_group']]['tableData'] += '</tr>';
     }
     for (var food_group in sections) {
         HTML += sections[food_group]['header'] + tableHeader
@@ -195,5 +212,5 @@ $(document).ready(function () {
     setDefaultSettings();
     initializeGlobals();
     //initialize page for user control
-    displayData();
+    generateList();
 });
