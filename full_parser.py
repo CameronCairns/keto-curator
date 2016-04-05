@@ -69,9 +69,6 @@ def format_nutrition_data(parsers, files):
             nutrient:  '{:.2f}'.format(float(value)*weight_ratio)
             for nutrient, value
             in nutrition_data[key]['nutrients']['100 gram'].items()}
-    # Now that the nutrition data has been formed, remove the NDB_number
-    # from the data set as it is no longer necessary
-    nutrition_data = list(nutrition_data.values())
     # Transform food groups into a list for usability
     food_groups = list(food_groups.values())
     # Close the files as we are done using them now
