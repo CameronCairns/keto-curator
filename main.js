@@ -1,41 +1,13 @@
 //Global variables to be reused
-var ascending, carbohydrate, data, fat, foodGroups, foodList, minerals,
-    nutrientData, sections, vitamins;
+var ascending, data, foodGroups, foodList, nutrientData, sections, tableHeader;
     
-
-function fetchJSON(url, dataStore) {
-    //return $.getJSON(url, function(json_data) {dataStore = json_data});
-    $.ajax({url:url,
-            dataType:'json', async: false,
-            success:function(json_data) {
-                return json_data}});
-}
-function setDefaultSettings() {
-    //Sort foodGroups into alphabetical order
-    foodGroups.sort();
-    // Initialize sortKey as 'available_carbohydrate' as a default
-    ordering = 'available_carbohydrate';
-    ascending = 1
-    // Foods are separated into diferent groups, so create an object to
-    // associate the group name of each section with its corresponding HTML
-    sections = {}
-    //Populate the header of each section using the food group's name
-    for (var i = 0; i < foodGroups.length; i++) {
-        sections[foodGroups[i]] = {'header': '', 'tableData': ''}
-        sections[foodGroups[i]]['header'] += '<h3>' +
-                                                  foodGroups[i] +
-                                             '</h3>';
-    }
-}
-
-function initializeGlobals() {
-    // Indices of vitamin, minerals and fats based upon nutrient definition
-    // numbers for the USDA nutrition database
-    // Selected nutrients are from FDA minimum nutrient guidelines
-    // http://www.fda.gov
-    // /Food/GuidanceRegulation/GuidanceDocumentsRegulatoryInformation
-    // /LabelingNutrition/ucm064928.htm
-    vitamins = [['318', 'A'],
+// Indices of vitamin, minerals and fats based upon nutrient definition
+// numbers for the USDA nutrition database
+// Selected nutrients are from FDA minimum nutrient guidelines
+// http://www.fda.gov
+// /Food/GuidanceRegulation/GuidanceDocumentsRegulatoryInformation
+// /LabelingNutrition/ucm064928.htm
+var vitamins = [['318', 'A'],
                 ['401', 'C'],
                 ['324', 'D'],
                 ['323', 'E'],
@@ -48,8 +20,8 @@ function initializeGlobals() {
                 ['410', 'Pantothenic Acid'],
                 ['417', 'Folate'],
                 //Note that biotin is not included
-    ];
-    minerals = [['301', 'Calcium'],
+                ];
+var minerals = [['301', 'Calcium'],
                 ['307', 'Sodium'],
                 ['305', 'Phosphorus'],
                 ['304', 'Magnesium'],
@@ -60,29 +32,81 @@ function initializeGlobals() {
                 ['309', 'Zinc'],
                 ['317', 'Selenium'],
                 // Note that Chromium, Molbydenum, and Iodine are not listed
-    ];
-    fat = [['204', 'Total'],
+                ];
+var fat = [['204', 'Total'],
            ['605', 'Trans'],
            ['606', 'Saturated'],
            ['645', 'Monounsaturated'],
            ['646', 'Polyunsaturated'],
-    ];
-    carbohydrate = [['available_carbohydrate', 'Available'],
+           ];
+var carbohydrate = [['available_carbohydrate', 'Available'],
                     ['205', 'Total'],
                     ['291', 'Fiber'],
                     ['269', 'Sugar'],
                     ['221', 'Alcohol'],
-    ];
+                    ];
+var iterableAttributes = [carbohydrate, fat, vitamins, minerals]
+    
+    
+
+function fetchJSON(url, dataStore) {
+    //return $.getJSON(url, function(json_data) {dataStore = json_data});
+    $.ajax({url:url,
+            dataType:'json', async: false,
+            success:function(json_data) {
+                return json_data}});
+}
+function setDefaultSettings() {
     foodList = Object.keys(data);
+    // Grab this selection element to populate foodGroup choices
+    foodGroupSelection = document.getElementById('select-food-groups');
+    filterAttributeSelection = document.getElementById('filter-attribute');
+    // Store foodGroup choices separately to get all of them before setting
+    // the inner html for select-food-groups
+    var foodGroupHTML = '';
+    var attributeHTML = '';
+    //Sort foodGroups into alphabetical order
+    foodGroups.sort();
+    // Initialize sortKey as 'available_carbohydrate' as a default
+    ordering = 'available_carbohydrate';
+    ascending = 1;
+    // Foods are separated into diferent groups, so create an object to
+    // associate the group name of each section with its corresponding HTML
+    sections = {};
+    //Populate the header of each section using the food group's name
+    //Also create the foodGroupSelection options since it uses the same data
+    for (var i = 0; i < foodGroups.length; i++) {
+        sections[foodGroups[i]] = {'header': '', 'tableData': ''}
+        sections[foodGroups[i]]['header'] += '<h3>' +
+                                                  foodGroups[i] +
+                                             '</h3>';
+        foodGroupHTML += '<option value=' + i + '>' +
+                             foodGroups[i] +
+                         '</option>';
+    }
+    for(var i = 0; i < iterableAttributes.length; i++) {
+        for(var j = 0; j < iterableAttributes[i].length; j++) {
+            attributeHTML +=
+                '<option value="' + iterableAttributes[i][j][0] + '">' +
+                    iterableAttributes[i][j][1] +
+                '</option>';
+        }
+    }
+    // Display food groups for user to choose from
+    foodGroupSelection.innerHTML += foodGroupHTML;
+    filterAttributeSelection.innerHTML += attributeHTML;
+    // Hook up function to selection
+    foodGroupSelection.onchange = function() {
+        var group = this.value;
+        displayGroup(group);
+    }
 }
 
+
 function generateList() {
-    var element = document.getElementById("javascript-fill-in");
     var extraHeader = '';
     var HTML = '';
     var tableData = '';
-    var tableHeader;
-    var iterableAttributes = [carbohydrate, fat, vitamins, minerals]
     // Sort the data according to the defined ordering
     // use separate comparison logic for numerical and string attributes
     if( ordering in ['description']) {
@@ -125,7 +149,7 @@ function generateList() {
     }
     // Construct the table header that will be shared amongst each food group
     // table. consists of headers defined by the attributes list
-    tableHeader = '<table class="table">' +
+    tableHeader = '<table class="table table-striped">' +
                       '<tr>' +
                           '<th>' +
                               'Food Description' +
@@ -186,11 +210,15 @@ function generateList() {
         }
         sections[data[key]['food_group']]['tableData'] += '</tr>';
     }
-    for (var food_group in sections) {
-        HTML += sections[food_group]['header'] + tableHeader
-        HTML += sections[food_group]['tableData'] + '</table>'
-    }
-    element.innerHTML = HTML
+}
+
+function displayGroup(selectedGroup) {
+    var element = document.getElementById("javascript-fill-in");
+    var group = foodGroups[selectedGroup]
+    element.innerHTML = sections[group]['header'] +
+               tableHeader +
+               sections[group]['tableData'] +
+               '</table>';
 }
 
 $(document).ready(function () {
@@ -208,9 +236,6 @@ $(document).ready(function () {
             dataType:'json',
             async: false,
             success: function (json_data){foodGroups=json_data;}});
-    //format data to assist in displaying it 
     setDefaultSettings();
-    initializeGlobals();
-    //initialize page for user control
     generateList();
 });
