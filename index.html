@@ -24,26 +24,30 @@
             <h1>Keto Curator</h1>
             <h2>An application to find keto friendly foods</h2>
             <h4>Food Group: </h4>
-            <div class='row'>
-                <select id='select-food-groups'>
-                    <option selected=True>Select Group to View</option>
-                </select>
+            <div class='form-inline'>
+                <div class='form-group'>
+                    <select id='select-food-groups' class='form-control'>
+                        <option selected=True>Select Group to View</option>
+                    </select>
+                </div>
             </div>
-            <div class='row'>
-                <h4>Filter: </h4>
-                <select id='filter-attribute'>
-                    <option selected=True>Select Attribute to Filter By</option>
-                </select>
-                <select id='filter-comparison'>
-                    <option value='greater-than'>&gt;</option>
-                    <option value='less-than'>&lt;</option>
-                    <option value='equal-to'>&equals;</option>
-                    <option value='greater-than-equal'>&gt;&equals;</option>
-                    <option value='less-than-equal'>&lt;&equals;</option>
-                </select>
-                <input type='text' value='10' id='filter-comparison-value'>
-                </input>
-                <button class='btn btn-default'>Filter Foods</button>
+            <div class='form-inline'>
+                <div class='form-group'>
+                    <h4>Filter: </h4>
+                    <select id='filter-attribute' class='form-control'>
+                        <option selected=True>Select Attribute to Filter By</option>
+                    </select>
+                    <select id='filter-comparison' class='form-control'>
+                        <option value='greater-than'>&gt;</option>
+                        <option value='less-than'>&lt;</option>
+                        <option value='equal-to'>&equals;</option>
+                        <option value='greater-than-equal'>&gt;&equals;</option>
+                        <option value='less-than-equal'>&lt;&equals;</option>
+                    </select>
+                    <input type='text' value='10' id='filter-comparison-value' class='form-control'>
+                    </input>
+                    <button class='btn btn-default'>Filter Foods</button>
+                </div>
             </div>
             <div id='initializer-parameters'>
             </div>

@@ -198,7 +198,7 @@ function generateList() {
                 sections[data[key]['food_group']]['tableData'] +=
                     '<li class="list-group-item">' +
                         iterableAttributes[j][k][1] + //Nutrient Description 
-                        ': ' +
+                        ':<br>' +
                         //Nutrient value
                         measurement[iterableAttributes[j][k][0]] + ' ' + 
                         //Nutrient units
